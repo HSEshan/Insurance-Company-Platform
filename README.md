@@ -3,7 +3,7 @@
 Full-stack insurance back-office app for quoting, underwriting, policies, claims,
 billing, documents, and compliance.
 
-**Core tech:** (place tech icon) FastAPI · React · PostgreSQL · Redis · MinIO · Docker
+**Core tech:** FastAPI · React · PostgreSQL · Redis · MinIO · Docker
 
 **Live demo:** _coming soon_ — placeholder link
 
@@ -55,9 +55,6 @@ backend/          FastAPI app (models → schemas → services → api)
 frontend/         React SPA (+ Playwright e2e/)
 deploy/nginx/     Production reverse-proxy example
 docker-compose.yml
-specs.md          Full product / API specification
-timeline.md       Build log and decisions
-AGENTS.md         Conventions for contributors / agents
 ```
 
 ## Quick start

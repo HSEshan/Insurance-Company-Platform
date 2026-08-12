@@ -7,7 +7,7 @@ billing, documents, and compliance.
 
 **Live demo:** _coming soon_ — placeholder link
 
-**Tests:** backend **108/108** · Playwright E2E **9/9** · frontend typecheck + build clean
+**Tests:** Backend[pytest] **108/108** · Frontend[Playwright E2E] **9/9**
 
 ---
 
@@ -126,15 +126,3 @@ npm run test:e2e
 Playwright covers landing, auth (form + demo login), customer policies/claims
 navigation, staff customers/quotes/reports/audit, and the chat launcher — smoke
 paths against the running demo, not every workflow edge case.
-
-## Production notes
-
-- SPA image uses [`frontend/nginx.conf`](./frontend/nginx.conf) (gzip, SPA fallback, security headers).
-- VPS deploy helpers: [`docker-compose.prod.yml`](./docker-compose.prod.yml), [`deploy/nginx/insureco.conf.example`](./deploy/nginx/insureco.conf.example), [`backend/.env.production.example`](./backend/.env.production.example).
-- Turn off demo surfaces for a locked-down deploy: `DEMO_MODE_ENABLED=false`, `CHAT_WIDGET_ENABLED=false`, and rotate `SECRET_KEY` / `ENCRYPTION_KEY`.
-
-## Docs
-
-- [`specs.md`](./specs.md) — domain model, APIs, phases
-- [`timeline.md`](./timeline.md) — what was built and why
-- [`AGENTS.md`](./AGENTS.md) — coding conventions

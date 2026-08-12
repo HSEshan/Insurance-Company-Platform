@@ -158,10 +158,10 @@ export function LandingPage() {
           </div>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link to="/register">
-              <Button>Customer? Register</Button>
+              <Button>Register</Button>
             </Link>
             <Link to="/login">
-              <Button variant="secondary">Staff sign in</Button>
+              <Button variant="secondary">Login</Button>
             </Link>
             <a href={apiDocs} target="_blank" rel="noreferrer">
               <Button variant="ghost">
@@ -170,6 +170,7 @@ export function LandingPage() {
               </Button>
             </a>
             {config?.github_repo_url && (
+              console.log(config.github_repo_url),
               <a
                 href={config.github_repo_url}
                 target="_blank"
@@ -191,11 +192,7 @@ export function LandingPage() {
                 One-click demo logins
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Explore every role instantly using seeded accounts. Requires{" "}
-                <code className="rounded bg-slate-200 px-1 text-xs">
-                  python -m scripts.seed
-                </code>{" "}
-                against a running API.
+                Explore every role instantly using demo logins.
               </p>
             </div>
             {demoError && <Alert message={demoError} />}

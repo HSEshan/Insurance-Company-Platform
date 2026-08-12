@@ -24,12 +24,8 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     LOG_LEVEL: str = "INFO"
     FRONTEND_URL: str = "http://localhost:5173"
-    # Portfolio demo: expose one-click persona logins on the public landing page.
-    # Disable for any real deployment.
     DEMO_MODE_ENABLED: bool = True
-    # Floating live-chat widget on `/` and the customer dashboard (simulated AI + handoff).
     CHAT_WIDGET_ENABLED: bool = True
-    # Optional engineer-facing link on the landing page (empty = hidden).
     GITHUB_REPO_URL: str = ""
 
     # --- Database ---
@@ -41,14 +37,9 @@ class Settings(BaseSettings):
     REDIS_URL: RedisDsn = Field(default="redis://localhost:6379/0")  # type: ignore[arg-type]
 
     # --- Celery ---
-    # Broker and results share Redis but use separate logical databases so
-    # lockout counters (db 0) never collide with task payloads.
     CELERY_BROKER_URL: str | None = None
     CELERY_RESULT_BACKEND: str | None = None
-    # Days an installment may stay unpaid before the policy lapses (specs §9).
     PREMIUM_LAPSE_DAYS: int = 30
-    # Orphaned MinIO objects newer than this are left alone — an upload may
-    # still be mid-flight between the PUT and the metadata POST.
     ORPHAN_OBJECT_GRACE_MINUTES: int = 60
 
     # --- Email (MailHog in local compose) ---
@@ -63,7 +54,6 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    # 32-byte urlsafe base64 key used for application-layer PII encryption.
     ENCRYPTION_KEY: str = "dev-only-insecure-32byte-key-padding-000000="
 
     # --- Auth hardening ---
@@ -71,15 +61,11 @@ class Settings(BaseSettings):
     LOGIN_LOCKOUT_MINUTES: int = 15
 
     # --- Object storage (MinIO) ---
-    # Endpoint the backend itself talks to (a docker-compose service name).
     MINIO_ENDPOINT: str = "localhost:9000"
-    # Endpoint baked into presigned URLs. The browser resolves these, so it must
-    # be reachable from the user's machine rather than from inside the network.
     MINIO_PUBLIC_ENDPOINT: str = "localhost:9000"
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_USE_SSL: bool = False
-    # Pinned so the SDK never has to look the region up over the network.
     MINIO_REGION: str = "us-east-1"
     PRESIGNED_URL_EXPIRY_MINUTES: int = 15
     MAX_UPLOAD_SIZE_MB: int = 25

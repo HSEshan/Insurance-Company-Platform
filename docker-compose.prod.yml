@@ -1,0 +1,57 @@
+# Production overlay for VPS deploys.
+#
+# Usage (from repo root on the server):
+#   cp backend/.env.production.example backend/.env.production   # then edit
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Host Nginx (see deploy/nginx/) terminates TLS and proxies:
+#   https://insurance.YOURDOMAIN/      → 127.0.0.1:8080  (SPA)
+#   https://insurance.YOURDOMAIN/api/  → 127.0.0.1:8000  (API)
+#   https://files.insurance.YOURDOMAIN → 127.0.0.1:9000  (MinIO)
+
+services:
+  postgres:
+    # Do not expose the database to the public internet.
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
+  minio:
+    ports: !reset
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      # Browser origin for the SPA (HTTPS). Set PUBLIC_APP_ORIGIN in a root .env.
+      MINIO_API_CORS_ALLOW_ORIGIN: "${PUBLIC_APP_ORIGIN:-https://insurance.example.com}"
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+
+  mailhog:
+    # Optional demo inbox — localhost only.
+    ports: !reset
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+
+  backend:
+    env_file:
+      - ./backend/.env.production
+    ports: !reset
+      - "127.0.0.1:8000:8000"
+
+  worker:
+    env_file:
+      - ./backend/.env.production
+
+  beat:
+    env_file:
+      - ./backend/.env.production
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Relative URL so the browser calls the same host Nginx proxies.
+        VITE_API_URL: /api/v1
+    ports: !reset
+      - "127.0.0.1:8080:80"

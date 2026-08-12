@@ -1,0 +1,83 @@
+# Example production reverse proxy (TLS termination + SPA + API).
+#
+# Copy/adapt beside your certificates, then:
+#   nginx -t && systemctl reload nginx
+#
+# Assumptions:
+#   - Built SPA is served by the frontend container (or static files) on 127.0.0.1:8080
+#   - FastAPI/uvicorn listens on 127.0.0.1:8000
+#   - MinIO public endpoint is separate (presigned URLs); do not proxy uploads
+#     through this server unless you intentionally change that design.
+#
+# Replace YOUR_DOMAIN and certificate paths before use.
+
+upstream insureco_api {
+    server 127.0.0.1:8000;
+    keepalive 16;
+}
+
+upstream insureco_spa {
+    server 127.0.0.1:8080;
+}
+
+# Redirect HTTP → HTTPS
+server {
+    listen 80;
+    server_name YOUR_DOMAIN;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name YOUR_DOMAIN;
+
+    ssl_certificate     /etc/letsencrypt/live/YOUR_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    server_tokens off;
+
+    # Security headers (CSP connect-src should include your MinIO public host).
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://YOUR_MINIO_HOST; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
+
+    client_max_body_size 2m;
+
+    # API — keep the /api prefix; FastAPI mounts at /api/v1.
+    location /api/ {
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_pass http://insureco_api;
+    }
+
+    # OpenAPI UI (optional — remove in locked-down deploys).
+    location /api/docs {
+        proxy_pass http://insureco_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/redoc {
+        proxy_pass http://insureco_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # SPA
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://insureco_spa;
+    }
+}

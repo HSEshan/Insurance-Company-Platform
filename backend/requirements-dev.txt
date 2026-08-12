@@ -1,0 +1,13 @@
+-r requirements.txt
+
+# Testing
+pytest
+pytest-asyncio
+httpx
+# Reads back generated PDFs so tests assert on rendered text rather than on
+# reportlab's internal stream encoding.
+pypdf
+
+# Tooling
+ruff
+mypy

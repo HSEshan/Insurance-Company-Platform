@@ -1,0 +1,46 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node ---
+node_modules/
+dist/
+.vite/
+
+# --- Environment ---
+.env
+.env.local
+*.local
+
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- Build / coverage ---
+coverage/
+htmlcov/
+.coverage
+
+# --- Playwright ---
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+frontend/playwright/.cache/
+
+# --- Personal / local secrets ---
+devnotes.md
+DEPLOY.md
+backend/.env.production
+.env.production
+AGENTS.md
+specs.md
+specs.txt
+timeline.md

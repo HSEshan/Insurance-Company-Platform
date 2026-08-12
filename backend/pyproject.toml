@@ -1,0 +1,24 @@
+[project]
+name = "insurance-platform-backend"
+version = "0.1.0"
+description = "Insurance Management Platform - FastAPI backend"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 95
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = ["B008"]  # FastAPI uses callables in argument defaults (Depends/Query).
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+warn_unused_ignores = false
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

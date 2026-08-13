@@ -11,14 +11,13 @@
 
 services:
   postgres:
-    # Do not expose the database to the public internet.
-    ports: !reset []
+    ports: []
 
   redis:
-    ports: !reset []
+    ports: []
 
   minio:
-    ports: !reset
+    ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     environment:
@@ -29,14 +28,14 @@ services:
 
   mailhog:
     # Optional demo inbox — localhost only.
-    ports: !reset
+    ports:
       - "127.0.0.1:8025:8025"
       - "127.0.0.1:1025:1025"
 
   backend:
     env_file:
       - ./backend/.env.production
-    ports: !reset
+    ports:
       - "127.0.0.1:8000:8000"
 
   worker:
@@ -53,5 +52,5 @@ services:
       args:
         # Relative URL so the browser calls the same host Nginx proxies.
         VITE_API_URL: /api/v1
-    ports: !reset
+    ports:
       - "127.0.0.1:8080:80"

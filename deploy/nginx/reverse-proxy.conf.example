@@ -39,17 +39,17 @@ server {
 
     server_tokens off;
 
-    # Security headers (CSP connect-src should include your MinIO public host).
+    # Applied to /api/ too. Keep CSP off this level — Swagger UI at /api/docs
+    # needs an inline script + cdn.jsdelivr.net (see location /).
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://YOUR_MINIO_HOST; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
 
     client_max_body_size 2m;
 
-    # API — keep the /api prefix; FastAPI mounts at /api/v1.
+    # API — keep the /api prefix; FastAPI mounts at /api/v1. Also covers /api/docs.
     location /api/ {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -60,24 +60,18 @@ server {
         proxy_pass http://insureco_api;
     }
 
-    # OpenAPI UI (optional — remove in locked-down deploys).
-    location /api/docs {
-        proxy_pass http://insureco_api;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /api/redoc {
-        proxy_pass http://insureco_api;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # SPA
+    # SPA — add_header here replaces parent, so repeat HSTS etc. + CSP.
     location / {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_pass http://insureco_spa;
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://YOUR_MINIO_HOST; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
     }
 }

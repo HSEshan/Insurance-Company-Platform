@@ -11,6 +11,14 @@ const baseURL =
 
 export const api = axios.create({ baseURL });
 
+/** OpenAPI UI lives at /api/docs, next to (not under) the /api/v1 JSON prefix. */
+export function apiDocsHref(path = "/api/docs"): string {
+  if (/^https?:\/\//i.test(baseURL)) {
+    return new URL(path, baseURL).href;
+  }
+  return path;
+}
+
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {

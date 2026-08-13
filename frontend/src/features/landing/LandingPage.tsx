@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { api, getErrorMessage } from "../../lib/api";
+import { api, apiDocsHref, getErrorMessage } from "../../lib/api";
 import { useAuthStore } from "../../stores/authStore";
 import { Alert, Button, Card } from "../../components/ui";
 import { ChatWidget } from "../chat/ChatWidget";
@@ -99,9 +99,7 @@ export function LandingPage() {
     }
   }
 
-  const apiDocs =
-    (import.meta.env.VITE_API_DOCS_URL as string | undefined) ??
-    "http://localhost:8000/api/docs";
+  const apiDocs = apiDocsHref(config?.api_docs_path ?? "/api/docs");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -170,7 +168,6 @@ export function LandingPage() {
               </Button>
             </a>
             {config?.github_repo_url && (
-              console.log(config.github_repo_url),
               <a
                 href={config.github_repo_url}
                 target="_blank"

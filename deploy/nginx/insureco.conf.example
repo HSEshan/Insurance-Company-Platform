@@ -51,17 +51,18 @@ server {
 
     server_tokens off;
 
+    # Applied to /api/ as well (JSON + Swagger HTML). Do NOT put CSP here:
+    # FastAPI's Swagger UI loads an inline bootstrap script + jsdelivr, so a
+    # server-level script-src 'self' blanks /api/docs. CSP belongs on the SPA.
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-    # Allow same-origin API + MinIO files host (presigned uploads/downloads).
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://files.insurance.YOURDOMAIN; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
 
     client_max_body_size 2m;
 
-    # FastAPI — paths stay /api/v1/... (SPA uses VITE_API_URL=/api/v1).
+    # FastAPI — /api/v1 JSON API, /api/docs Swagger, /api/openapi.json.
     location /api/ {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -73,12 +74,21 @@ server {
     }
 
     # React Router: /login, /dashboard, /policies/:id, etc. → index.html via SPA container.
+    # add_header in a location replaces parent add_header, so repeat HSTS etc.
     location / {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_pass http://insureco_spa;
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+        # Allow same-origin API + MinIO files host (presigned uploads/downloads).
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://files.insurance.YOURDOMAIN; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
     }
 }
 

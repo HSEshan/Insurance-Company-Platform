@@ -9,7 +9,7 @@
 # Prerequisites:
 #   - DNS A records for insurance.YOURDOMAIN and files.insurance.YOURDOMAIN → VPS IP
 #   - Certbot certs for both names (see DEPLOY.md)
-#   - docker compose prod overlay publishing:
+#   - docker compose -f docker-compose.prod.yml publishing:
 #       127.0.0.1:8080 → SPA, 127.0.0.1:8000 → API, 127.0.0.1:9000 → MinIO
 
 # ---- HTTP: ACME + redirect to HTTPS ----

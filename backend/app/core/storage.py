@@ -40,7 +40,7 @@ class Bucket(enum.StrEnum):
     temp_uploads = "temp-uploads"
 
 
-def _build_client(endpoint: str) -> Minio:
+def _build_client(endpoint: str, *, secure: bool) -> Minio:
     # An explicit region matters: without one the SDK resolves it by calling
     # GET /<bucket>?location= before it can sign anything. The presign client
     # points at a browser-facing address the backend cannot reach, so that
@@ -49,15 +49,20 @@ def _build_client(endpoint: str) -> Minio:
         endpoint,
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY,
-        secure=settings.MINIO_USE_SSL,
+        secure=secure,
         region=settings.MINIO_REGION,
     )
 
 
 @lru_cache
 def get_client() -> Minio:
-    """Client for server-side operations, over the internal network."""
-    return _build_client(settings.MINIO_ENDPOINT)
+    """Client for server-side operations, over the internal network.
+
+    Always HTTP: inside Compose the backend talks to ``minio:9000`` on the
+    Docker network. TLS for browsers terminates at host Nginx on the public
+    ``files.*`` host — see ``get_presign_client``.
+    """
+    return _build_client(settings.MINIO_ENDPOINT, secure=False)
 
 
 @lru_cache
@@ -68,8 +73,13 @@ def get_presign_client() -> Minio:
     against the endpoint the browser will actually connect to. Inside Docker the
     backend reaches MinIO at ``minio:9000``, which does not resolve on the
     user's machine — signing with that host would produce URLs that always fail.
+
+    ``MINIO_USE_SSL`` controls the scheme on those public URLs (``https://``
+    behind Nginx TLS; ``http://`` for local MinIO on localhost:9000).
     """
-    return _build_client(settings.MINIO_PUBLIC_ENDPOINT)
+    return _build_client(
+        settings.MINIO_PUBLIC_ENDPOINT, secure=settings.MINIO_USE_SSL
+    )
 
 
 def _presign_expiry() -> timedelta:

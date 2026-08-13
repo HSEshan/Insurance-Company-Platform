@@ -1,56 +1,146 @@
-# Production overlay for VPS deploys.
+# Standalone production Compose file (VPS).
 #
-# Usage (from repo root on the server):
-#   cp backend/.env.production.example backend/.env.production   # then edit
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+# Does NOT merge with docker-compose.yml — avoids host-port merge bugs where
+# base "8000:8000" stayed on 0.0.0.0 alongside localhost binds.
 #
-# Host Nginx (see deploy/nginx/) terminates TLS and proxies:
-#   https://insurance.YOURDOMAIN/      → 127.0.0.1:8080  (SPA)
-#   https://insurance.YOURDOMAIN/api/  → 127.0.0.1:8000  (API)
-#   https://files.insurance.YOURDOMAIN → 127.0.0.1:9000  (MinIO)
+# Usage (on the server):
+#   cp backend/.env.production.example backend/.env.production  # edit secrets
+#   # optional root .env for Compose substitution:
+#   #   PUBLIC_APP_ORIGIN=https://insurance.example.com
+#   #   MINIO_ROOT_USER=...
+#   #   MINIO_ROOT_PASSWORD=...
+#   docker compose -f docker-compose.prod.yml up --build -d
+#   docker compose -f docker-compose.prod.yml exec backend python -m scripts.seed
+#
+# Host Nginx (deploy/nginx/insureco.conf.example) proxies:
+#   https://insurance…/      → 127.0.0.1:8080
+#   https://insurance…/api/  → 127.0.0.1:8000
+#   https://files.insurance… → 127.0.0.1:9000
+#
+# Local development still uses: docker compose up (docker-compose.yml).
 
 services:
   postgres:
-    ports: []
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: insurance
+      POSTGRES_PASSWORD: insurance
+      POSTGRES_DB: insurance_db
+    # No host ports — only reachable on the Compose network.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U insurance -d insurance_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   redis:
-    ports: []
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+      MINIO_API_CORS_ALLOW_ORIGIN: "${PUBLIC_APP_ORIGIN:-https://insurance.example.com}"
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
-    environment:
-      # Browser origin for the SPA (HTTPS). Set PUBLIC_APP_ORIGIN in a root .env.
-      MINIO_API_CORS_ALLOW_ORIGIN: "${PUBLIC_APP_ORIGIN:-https://insurance.example.com}"
-      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
-      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   mailhog:
-    # Optional demo inbox — localhost only.
+    image: mailhog/mailhog:latest
     ports:
-      - "127.0.0.1:8025:8025"
       - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
 
   backend:
+    build: ./backend
     env_file:
       - ./backend/.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     ports:
       - "127.0.0.1:8000:8000"
+    restart: unless-stopped
 
   worker:
+    build: ./backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.workers.celery_app.celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--pool=solo",
+      ]
     env_file:
       - ./backend/.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    restart: unless-stopped
 
   beat:
+    build: ./backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.workers.celery_app.celery_app",
+        "beat",
+        "--loglevel=INFO",
+      ]
     env_file:
       - ./backend/.env.production
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       args:
-        # Relative URL so the browser calls the same host Nginx proxies.
         VITE_API_URL: /api/v1
+    depends_on:
+      - backend
     ports:
       - "127.0.0.1:8080:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

@@ -271,7 +271,7 @@ async def _ensure_quotes(db, customer: Customer, agent: User) -> None:
             monthly_premium=Decimal("133.33"),
             risk_tier=RiskTier.standard,
             rating_inputs={"seed": True},
-            rating_factors=[{"name": "base", "factor": 1.0}],
+            rating_factors=[{"name": "base", "multiplier": 1.0}],
             policy_details={"make": "Toyota", "model": "Camry", "year": 2022},
             decline_reasons=["SEED decline sample"]
             if status == QuoteStatus.rejected

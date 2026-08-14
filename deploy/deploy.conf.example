@@ -1,0 +1,17 @@
+# Copy to deploy/deploy.conf (gitignored) and edit on the VPS.
+#
+#   cp deploy/deploy.conf.example deploy/deploy.conf
+#   nano deploy/deploy.conf
+#   ./deploy/deploy.sh bootstrap   # once per droplet
+#   ./deploy/deploy.sh certs       # once per project (needs DNS)
+#   # then install that project's Nginx vhost yourself
+
+# Short name for /etc/nginx/sites-available/$APP_NAME
+APP_NAME=insureco
+
+# Space-separated hostnames on one certificate.
+# First name = Let's Encrypt live directory
+#   /etc/letsencrypt/live/<first-name>/
+DOMAINS="insurance.example.com files.insurance.example.com"
+
+CERTBOT_EMAIL=you@example.com

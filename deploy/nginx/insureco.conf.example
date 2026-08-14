@@ -1,14 +1,17 @@
 # Host Nginx for insurance.YOURDOMAIN (TLS + SPA routes + API + MinIO).
 #
-# Install on the VPS (Debian/Ubuntu):
+# This file is **this project's** vhost, not a generic template. Other apps on
+# the droplet get their own site under /etc/nginx/sites-available/.
+#
+# After ./deploy/deploy.sh certs:
 #   sudo cp deploy/nginx/insureco.conf.example /etc/nginx/sites-available/insureco
-#   # edit server_name + ssl paths, then:
+#   # replace YOURDOMAIN (and ports if you changed Compose binds)
 #   sudo ln -sf /etc/nginx/sites-available/insureco /etc/nginx/sites-enabled/
 #   sudo nginx -t && sudo systemctl reload nginx
 #
 # Prerequisites:
 #   - DNS A records for insurance.YOURDOMAIN and files.insurance.YOURDOMAIN → VPS IP
-#   - Certbot certs for both names (see DEPLOY.md)
+#   - Certbot certs for both names (first -d name = insurance.YOURDOMAIN)
 #   - docker compose -f docker-compose.prod.yml publishing:
 #       127.0.0.1:8080 → SPA, 127.0.0.1:8000 → API, 127.0.0.1:9000 → MinIO
 

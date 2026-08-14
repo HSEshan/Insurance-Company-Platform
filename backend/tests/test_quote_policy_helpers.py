@@ -6,12 +6,13 @@ rating-driven hard-decline paths used by the quote service.
 
 from __future__ import annotations
 
-from datetime import date
+import uuid
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
 
-from app.models.enums import PaymentFrequency, PolicyType, RiskTier
+from app.models.enums import PaymentFrequency, PolicyType, QuoteStatus, RiskTier
 from app.services.policy_service import (
     build_policy_number,
     generate_premium_schedule_rows,
@@ -128,3 +129,31 @@ def test_quote_create_requires_matching_lob() -> None:
             policy_type=PolicyType.auto,
             effective_date=date(2026, 9, 1),
         )
+
+
+def test_rating_factor_accepts_legacy_factor_key() -> None:
+    from app.services.rating.result import RatingFactor
+
+    legacy = RatingFactor.model_validate({"name": "base", "factor": 1.0})
+    assert legacy.multiplier == 1.0
+    assert legacy.model_dump() == {"name": "base", "multiplier": 1.0}
+
+    current = RatingFactor.model_validate({"name": "state", "multiplier": 1.15})
+    assert current.multiplier == 1.15
+
+
+def test_quote_read_accepts_legacy_rating_factors() -> None:
+    from app.schemas.quote import QuoteRead
+
+    read = QuoteRead(
+        id=uuid.uuid4(),
+        customer_id=uuid.uuid4(),
+        policy_type=PolicyType.auto,
+        status=QuoteStatus.approved,
+        rating_factors=[{"name": "base", "factor": 1.0}],
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    assert read.rating_factors is not None
+    assert read.rating_factors[0].name == "base"
+    assert read.rating_factors[0].multiplier == 1.0

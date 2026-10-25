@@ -10,6 +10,7 @@ import type {
   CustomerDashboard,
   Envelope,
   ManagerDashboard,
+  MonthCount,
   NamedCount,
   UserRole,
 } from "../../types";
@@ -141,28 +142,139 @@ function StatusBars({ items }: { items: NamedCount[] }) {
   );
 }
 
-function Sparkline({ points }: { points: { month: string; count: number }[] }) {
-  if (points.length === 0) return null;
-  const max = Math.max(1, ...points.map((p) => p.count));
-  const w = 240;
-  const h = 48;
-  const step = points.length > 1 ? w / (points.length - 1) : w;
-  const coords = points
-    .map((p, i) => {
-      const x = i * step;
-      const y = h - (p.count / max) * (h - 4) - 2;
-      return `${x},${y}`;
-    })
-    .join(" ");
+function monthAbbrev(ym: string): string {
+  const [year, month] = ym.split("-").map(Number);
+  if (!year || !month) return ym;
+  return new Date(year, month - 1, 1).toLocaleString("en-US", { month: "short" });
+}
+
+function monthRangeLabel(points: MonthCount[]): string {
+  if (points.length === 0) return "";
+  const first = points[0].month.split("-").map(Number);
+  const last = points[points.length - 1].month.split("-").map(Number);
+  const fmt = (y: number, m: number) =>
+    new Date(y, m - 1, 1).toLocaleString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  return `${fmt(first[0], first[1])} – ${fmt(last[0], last[1])}`;
+}
+
+function yAxisTicks(max: number): number[] {
+  if (max <= 5) {
+    return Array.from({ length: max + 1 }, (_, i) => i);
+  }
+  const step = Math.ceil(max / 4);
+  const ticks: number[] = [];
+  for (let value = 0; value <= max; value += step) {
+    ticks.push(value);
+  }
+  if (ticks[ticks.length - 1] !== max) {
+    ticks.push(max);
+  }
+  return ticks;
+}
+
+function MonthChart({ points }: { points: MonthCount[] }) {
+  if (points.length === 0) {
+    return <p className="text-sm text-slate-500">No policies in this window.</p>;
+  }
+
+  const yMax = Math.max(1, ...points.map((p) => p.count));
+  const ticks = yAxisTicks(yMax);
+  const width = 720;
+  const height = 240;
+  const pad = { top: 24, right: 16, bottom: 40, left: 40 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+  const gap = 10;
+  const barW = Math.max(12, (innerW - gap * (points.length - 1)) / points.length);
+  const yOf = (count: number) => pad.top + innerH - (count / yMax) * innerH;
+  const baseline = pad.top + innerH;
+
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-12 w-full text-indigo-600">
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        points={coords}
-      />
-    </svg>
+    <div>
+      <p className="mb-2 text-xs text-slate-500">{monthRangeLabel(points)}</p>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-56 w-full"
+        role="img"
+        aria-label="New policies written by month"
+      >
+        {ticks.map((tick) => {
+          const y = yOf(tick);
+          return (
+            <g key={tick}>
+              <line
+                x1={pad.left}
+                x2={width - pad.right}
+                y1={y}
+                y2={y}
+                stroke="#e2e8f0"
+                strokeWidth="1"
+              />
+              <text
+                x={pad.left - 8}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="12"
+                fill="#475569"
+              >
+                {tick}
+              </text>
+            </g>
+          );
+        })}
+        <line
+          x1={pad.left}
+          x2={width - pad.right}
+          y1={baseline}
+          y2={baseline}
+          stroke="#94a3b8"
+          strokeWidth="1.5"
+        />
+        {points.map((point, index) => {
+          const x = pad.left + index * (barW + gap);
+          const barH = (point.count / yMax) * innerH;
+          const y = yOf(point.count);
+          return (
+            <g key={point.month}>
+              {point.count > 0 ? (
+                <rect
+                  x={x}
+                  y={y}
+                  width={barW}
+                  height={Math.max(barH, 2)}
+                  rx="3"
+                  fill="#4f46e5"
+                />
+              ) : null}
+              {point.count > 0 ? (
+                <text
+                  x={x + barW / 2}
+                  y={y - 6}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fontWeight="600"
+                  fill="#1e293b"
+                >
+                  {point.count}
+                </text>
+              ) : null}
+              <text
+                x={x + barW / 2}
+                y={baseline + 16}
+                textAnchor="middle"
+                fontSize="12"
+                fill="#475569"
+              >
+                {monthAbbrev(point.month)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
@@ -218,8 +330,8 @@ function ManagerPanel() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
           <p className="text-sm font-medium text-slate-700">
             Premium collected vs target (MTD)
           </p>
@@ -246,20 +358,20 @@ function ManagerPanel() {
           </div>
         </Card>
 
-        <Card className="lg:col-span-1">
-          <p className="mb-2 text-sm font-medium text-slate-700">
-            New policies (12 months)
-          </p>
-          <Sparkline points={data.new_policies_sparkline} />
-        </Card>
-
-        <Card className="lg:col-span-1">
+        <Card>
           <p className="mb-3 text-sm font-medium text-slate-700">
             Claims by status
           </p>
           <StatusBars items={data.claims_by_status} />
         </Card>
       </div>
+
+      <Card>
+        <p className="mb-1 text-sm font-medium text-slate-700">
+          New policies (12 months)
+        </p>
+        <MonthChart points={data.new_policies_sparkline} />
+      </Card>
 
       <Card className="p-0">
         <div className="border-b border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">

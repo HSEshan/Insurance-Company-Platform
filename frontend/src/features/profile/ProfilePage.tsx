@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../stores/authStore";
 import { Badge, Card } from "../../components/ui";
@@ -43,6 +44,17 @@ export function ProfilePage() {
         <Row
           label="Role"
           value={<span className="capitalize">{user.role.replace(/_/g, " ")}</span>}
+        />
+        <Row
+          label="Two-factor auth"
+          value={
+            <span className="flex items-center gap-2">
+              <Badge value={user.mfa_enabled ? "on" : "off"} />
+              <Link to="/security" className="text-indigo-600 hover:underline">
+                Manage
+              </Link>
+            </span>
+          }
         />
       </Card>
 

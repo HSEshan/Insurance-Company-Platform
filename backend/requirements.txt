@@ -16,6 +16,9 @@ email-validator==2.3.0
 pyjwt==2.13.0
 bcrypt==5.0.0
 cryptography==49.0.0
+# Two-factor auth: RFC 6238 TOTP + QR codes (SVG output, no Pillow needed)
+pyotp==2.10.0
+qrcode==8.2
 
 # Redis
 redis==8.0.0

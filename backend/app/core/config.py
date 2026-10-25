@@ -60,6 +60,24 @@ class Settings(BaseSettings):
     MAX_LOGIN_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_MINUTES: int = 15
 
+    # --- Verification codes & two-factor auth ---
+    # Delivery providers. "simulated" logs the message instead of sending it;
+    # swap in a real integration (e.g. SendGrid, Twilio) behind the same
+    # interface in app/services/delivery.py. "smtp" reuses MAIL_* above.
+    VERIFICATION_EMAIL_PROVIDER: Literal["simulated", "smtp"] = "simulated"
+    SMS_PROVIDER: Literal["simulated"] = "simulated"
+    # When a simulated provider handles a message, echo the code back in the API
+    # response so the demo is usable without a real inbox/phone. Never enable
+    # this with a real provider (it is ignored for non-simulated deliveries).
+    OTP_EXPOSE_SIMULATED_CODES: bool = True
+    OTP_LENGTH: int = 6
+    OTP_TTL_MINUTES: int = 10
+    OTP_MAX_ATTEMPTS: int = 5
+    OTP_RESEND_COOLDOWN_SECONDS: int = 60
+    MFA_CHALLENGE_TTL_MINUTES: int = 5
+    TOTP_ISSUER: str = "InsureCo"
+    MFA_RECOVERY_CODE_COUNT: int = 10
+
     # --- Object storage (MinIO) ---
     MINIO_ENDPOINT: str = "localhost:9000"
     MINIO_PUBLIC_ENDPOINT: str = "localhost:9000"

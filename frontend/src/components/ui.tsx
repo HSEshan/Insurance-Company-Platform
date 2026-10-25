@@ -103,7 +103,32 @@ export function Alert({ message }: { message: string }) {
   );
 }
 
+const noticeTones = {
+  info: "border-indigo-200 bg-indigo-50 text-indigo-800",
+  success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  warning: "border-amber-200 bg-amber-50 text-amber-800",
+} as const;
+
+export function Notice({
+  tone = "info",
+  children,
+}: {
+  tone?: keyof typeof noticeTones;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`rounded-lg border px-3 py-2 text-sm ${noticeTones[tone]}`}>
+      {children}
+    </div>
+  );
+}
+
 const badgeColors: Record<string, string> = {
+  // Contact verification / 2FA
+  verified: "bg-emerald-100 text-emerald-700",
+  not_verified: "bg-amber-100 text-amber-700",
+  on: "bg-emerald-100 text-emerald-700",
+  off: "bg-slate-100 text-slate-600",
   // Risk tiers
   preferred: "bg-emerald-100 text-emerald-700",
   standard: "bg-blue-100 text-blue-700",

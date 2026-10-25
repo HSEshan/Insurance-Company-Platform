@@ -4,6 +4,7 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   ScrollText,
@@ -76,6 +77,7 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["super_admin"],
   },
   { to: "/profile", label: "My Profile", icon: UserCircle },
+  { to: "/security", label: "Security", icon: KeyRound },
 ];
 
 export function AppLayout() {

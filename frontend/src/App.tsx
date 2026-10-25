@@ -7,6 +7,7 @@ import { ChangePasswordPage } from "./features/auth/ChangePasswordPage";
 import { AdminUsersPage } from "./features/admin/AdminUsersPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { ProfilePage } from "./features/profile/ProfilePage";
+import { SecurityPage } from "./features/security/SecurityPage";
 import { CustomersPage } from "./features/customers/CustomersPage";
 import { QuotesPage } from "./features/quotes/QuotesPage";
 import { QuoteDetailPage } from "./features/quotes/QuoteDetailPage";
@@ -83,6 +84,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/security" element={<SecurityPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/quotes" element={<QuotesPage />} />
           <Route path="/quotes/:id" element={<QuoteDetailPage />} />

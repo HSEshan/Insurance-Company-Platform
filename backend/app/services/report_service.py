@@ -96,6 +96,32 @@ def month_end(d: date) -> date:
     return d.replace(day=monthrange(d.year, d.month)[1])
 
 
+def month_buckets(today: date, months: int = 12) -> list[date]:
+    """First day of each month, oldest first, including the month of ``today``."""
+    end = month_start(today)
+    cursor = month_start(add_months(end, -(months - 1)))
+    buckets: list[date] = []
+    while cursor <= end:
+        buckets.append(cursor)
+        cursor = add_months(cursor, 1)
+    return buckets
+
+
+def year_month(value: datetime | date) -> str:
+    if isinstance(value, datetime):
+        value = value.date()
+    return value.strftime("%Y-%m")
+
+
+def fill_month_counts(
+    buckets: list[date], counted: dict[str, int]
+) -> list[MonthCount]:
+    return [
+        MonthCount(month=year_month(bucket), count=counted.get(year_month(bucket), 0))
+        for bucket in buckets
+    ]
+
+
 def compute_loss_ratio(
     premium_collected: Decimal, claims_paid: Decimal
 ) -> Decimal | None:
@@ -134,7 +160,8 @@ async def manager_dashboard(
     this_month = month_start(today)
     last_month = month_start(add_months(this_month, -1))
     next_month = month_start(add_months(this_month, 1))
-    window_start = add_months(this_month, -11)
+    buckets = month_buckets(today)
+    window_start = buckets[0]
 
     active_total = int(
         await db.scalar(
@@ -166,8 +193,8 @@ async def manager_dashboard(
             select(func.count())
             .select_from(Policy)
             .where(
-                cast(Policy.created_at, SADate) >= this_month,
-                cast(Policy.created_at, SADate) < next_month,
+                Policy.effective_date >= this_month,
+                Policy.effective_date < next_month,
             )
         )
         or 0
@@ -177,14 +204,14 @@ async def manager_dashboard(
             select(func.count())
             .select_from(Policy)
             .where(
-                cast(Policy.created_at, SADate) >= last_month,
-                cast(Policy.created_at, SADate) < this_month,
+                Policy.effective_date >= last_month,
+                Policy.effective_date < this_month,
             )
         )
         or 0
     )
 
-    sparkline = await _new_policies_sparkline(db, window_start, today)
+    sparkline = await _new_policies_sparkline(db, window_start, next_month, buckets)
 
     open_claims = int(
         await db.scalar(
@@ -243,36 +270,30 @@ async def manager_dashboard(
 
 
 async def _new_policies_sparkline(
-    db: AsyncSession, window_start: date, today: date
+    db: AsyncSession,
+    window_start: date,
+    until: date,
+    buckets: list[date],
 ) -> list[MonthCount]:
-    # Twelve month buckets ending with the current month.
-    buckets: list[date] = []
-    cursor = month_start(window_start)
-    end = month_start(today)
-    while cursor <= end:
-        buckets.append(cursor)
-        cursor = add_months(cursor, 1)
-
+    # Count by inception month. Seeded rows all share created_at=now(), so using
+    # created_at made the 12-month series a flat line with a spike this month.
+    month_trunc = func.date_trunc("month", Policy.effective_date)
     rows = (
         await db.execute(
-            select(
-                func.date_trunc("month", Policy.created_at).label("month"),
-                func.count(),
+            select(month_trunc, func.count())
+            .where(
+                Policy.effective_date >= window_start,
+                Policy.effective_date < until,
             )
-            .where(cast(Policy.created_at, SADate) >= window_start)
-            .group_by("month")
-            .order_by("month")
+            .group_by(month_trunc)
         )
     ).all()
-    counted = {
-        (m.date() if isinstance(m, datetime) else m).strftime("%Y-%m"): int(c)
-        for m, c in rows
-        if m is not None
-    }
-    return [
-        MonthCount(month=b.strftime("%Y-%m"), count=counted.get(b.strftime("%Y-%m"), 0))
-        for b in buckets
-    ]
+    counted: dict[str, int] = {}
+    for raw, cnt in rows:
+        if raw is None:
+            continue
+        counted[year_month(raw)] = counted.get(year_month(raw), 0) + int(cnt)
+    return fill_month_counts(buckets, counted)
 
 
 async def _avg_days_to_close(

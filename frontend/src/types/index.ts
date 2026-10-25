@@ -14,6 +14,9 @@ export interface User {
   role: UserRole;
   is_active: boolean;
   must_reset_password?: boolean;
+  email_verified?: boolean;
+  phone_verified?: boolean;
+  mfa_enabled?: boolean;
   last_login?: string | null;
   created_at: string;
 }
@@ -43,6 +46,62 @@ export interface TokenPair {
 export interface AuthResult {
   user: User;
   tokens: TokenPair;
+}
+
+// --- Verification & two-factor auth ---
+export type MfaMethod = "totp" | "email" | "sms";
+
+/** Where a one-time code went. `simulated_code` is only set in demo/simulated delivery. */
+export interface CodeDispatch {
+  channel: "email" | "sms";
+  destination: string;
+  expires_in_seconds: number;
+  resend_after_seconds: number;
+  simulated: boolean;
+  simulated_code?: string | null;
+}
+
+export interface MfaChallenge {
+  mfa_token: string;
+  method: MfaMethod;
+  destination?: string | null;
+  expires_in_seconds: number;
+  dispatch?: CodeDispatch | null;
+}
+
+/** `/auth/login` and `/auth/mfa/verify`: a session, or a 2FA challenge. */
+export interface LoginResult {
+  mfa_required: boolean;
+  user?: User | null;
+  tokens?: TokenPair | null;
+  challenge?: MfaChallenge | null;
+}
+
+export interface SecurityStatus {
+  email: string;
+  email_verified: boolean;
+  email_verified_at?: string | null;
+  phone?: string | null;
+  phone_verified: boolean;
+  phone_verified_at?: string | null;
+  mfa_enabled: boolean;
+  mfa_method?: MfaMethod | null;
+  mfa_enabled_at?: string | null;
+  recovery_codes_remaining: number;
+  available_methods: MfaMethod[];
+  mfa_locked_reason?: string | null;
+}
+
+export interface TotpSetup {
+  secret: string;
+  otpauth_uri: string;
+  qr_code_data_uri: string;
+  expires_in_seconds: number;
+}
+
+export interface RecoveryCodesResult {
+  recovery_codes: string[];
+  status: SecurityStatus;
 }
 
 export interface ApiErrorDetail {

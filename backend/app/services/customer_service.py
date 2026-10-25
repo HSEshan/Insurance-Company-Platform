@@ -14,6 +14,7 @@ from app.models.customer import Customer
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.customer import CustomerCreate, CustomerRead, CustomerUpdate
+from app.services import verification_service
 
 
 def _mask_ssn(last4: str | None) -> str | None:
@@ -141,7 +142,7 @@ async def update_customer(
     for field, value in data.items():
         setattr(customer, field, value)
     if phone is not None and customer.user is not None:
-        customer.user.phone = phone
+        verification_service.apply_phone_change(customer.user, phone)
 
     await db.commit()
     return await get_customer(db, customer_id)

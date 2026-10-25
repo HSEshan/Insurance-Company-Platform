@@ -45,6 +45,11 @@ from app.models.quote import Quote
 from app.models.user import User
 from app.services import billing
 
+
+def written_at(effective: date) -> datetime:
+    """Inception timestamp used so dashboard month buckets match effective_date."""
+    return datetime(effective.year, effective.month, effective.day, 14, 0, tzinfo=UTC)
+
 # Extra customers (beyond Casey Customer).
 CUSTOMER_B_EMAIL = "homeowner@insureco.com"
 CUSTOMER_B_PASSWORD = "Customer123!"
@@ -141,6 +146,7 @@ async def _ensure_home_policy(db, customer: Customer, agent: User) -> Policy:
         annual_premium=Decimal("1240.00"),
         payment_frequency=PaymentFrequency.annual,
         agent_id=agent.id,
+        created_at=written_at(effective),
     )
     db.add(policy)
     await db.flush()
@@ -184,6 +190,7 @@ async def _ensure_life_policy(db, customer: Customer, agent: User) -> Policy:
         annual_premium=Decimal("890.00"),
         payment_frequency=PaymentFrequency.monthly,
         agent_id=agent.id,
+        created_at=written_at(effective),
     )
     db.add(policy)
     await db.flush()
@@ -250,9 +257,40 @@ async def _ensure_status_policies(
             cancelled_at=datetime.now(UTC) - timedelta(days=10)
             if status == PolicyStatus.cancelled
             else None,
+            created_at=written_at(effective),
         )
         db.add(policy)
         print(f"  + created {status.value} policy {number}")
+
+
+async def _align_seed_policy_written_at(db) -> None:
+    """Existing demo policies were inserted with created_at=now().
+
+    Re-running seed backdates them to the inception day so any created_at
+    aggregations stay consistent with effective_date.
+    """
+    numbers = [
+        "AUTO-2026-900001",
+        HOME_POLICY,
+        LIFE_POLICY,
+        LAPSED_POLICY,
+        CANCELLED_POLICY,
+    ]
+    policies = (
+        await db.scalars(select(Policy).where(Policy.policy_number.in_(numbers)))
+    ).all()
+    updated = 0
+    for policy in policies:
+        intended = written_at(policy.effective_date)
+        current = policy.created_at
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=UTC)
+        if current.date() == intended.date():
+            continue
+        policy.created_at = intended
+        updated += 1
+    if updated:
+        print(f"  ~ aligned created_at on {updated} seed polic(ies)")
 
 
 async def _ensure_quotes(db, customer: Customer, agent: User) -> None:
@@ -522,3 +560,4 @@ async def ensure_expanded_demo(
     await _ensure_status_policies(db, primary_customer, agent)
     await _ensure_quotes(db, primary_customer, agent)
     await _ensure_lifecycle_claims(db, primary_policy, primary_customer, adjuster)
+    await _align_seed_policy_written_at(db)

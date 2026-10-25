@@ -13,6 +13,14 @@ class UserRole(enum.StrEnum):
     super_admin = "super_admin"
 
 
+class MfaMethod(enum.StrEnum):
+    """Second factor a user has chosen for sign-in."""
+
+    totp = "totp"
+    email = "email"
+    sms = "sms"
+
+
 class RiskTier(enum.StrEnum):
     preferred = "preferred"
     standard = "standard"

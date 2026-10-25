@@ -13,6 +13,7 @@ from app.models.user import User
 from app.schemas.auth import (
     AuthResult,
     LoginRequest,
+    LoginResult,
     RefreshRequest,
     RegisterRequest,
     TokenPair,
@@ -36,7 +37,7 @@ async def register(
     return ok(result)
 
 
-@router.post("/login", response_model=Envelope[AuthResult])
+@router.post("/login", response_model=Envelope[LoginResult])
 async def login(
     payload: LoginRequest,
     db: AsyncSession = Depends(get_db),

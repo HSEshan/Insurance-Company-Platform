@@ -6,6 +6,7 @@ from datetime import date
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.mfa import MfaChallenge
 from app.schemas.user import UserRead
 
 
@@ -37,6 +38,16 @@ class TokenPair(BaseModel):
 class AuthResult(BaseModel):
     user: UserRead
     tokens: TokenPair
+
+
+class LoginResult(BaseModel):
+    """Either a full session (``user`` + ``tokens``) or, when the account has 2FA,
+    a ``challenge`` to complete via ``POST /auth/mfa/verify``."""
+
+    mfa_required: bool = False
+    user: UserRead | None = None
+    tokens: TokenPair | None = None
+    challenge: MfaChallenge | None = None
 
 
 class ForgotPasswordRequest(BaseModel):

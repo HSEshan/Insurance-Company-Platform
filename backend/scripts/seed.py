@@ -40,7 +40,7 @@ from app.models.enums import (
 from app.models.policy import Policy, PolicyAutoDetails
 from app.models.user import User
 from app.services import billing, policy_service
-from scripts.seed_expanded import ensure_expanded_demo
+from scripts.seed_expanded import ensure_expanded_demo, written_at
 
 # Uses a real TLD because RFC-compliant email validation rejects reserved
 # special-use domains such as ".local".
@@ -138,6 +138,7 @@ async def _ensure_demo_policy(db, customer: Customer, agent: User) -> Policy:
         annual_premium=Decimal("1480.00"),
         payment_frequency=PaymentFrequency.monthly,
         agent_id=agent.id,
+        created_at=written_at(effective),
     )
     db.add(policy)
     await db.flush()

@@ -29,7 +29,7 @@ from app.schemas.staff import (
     StaffUpdate,
 )
 from app.schemas.user import UserRead
-from app.services import audit_service, email_service
+from app.services import audit_service, email_service, verification_service
 
 OPEN_CLAIM_STATUSES = frozenset(
     {
@@ -371,7 +371,7 @@ async def update_staff(
     if payload.last_name is not None:
         user.last_name = payload.last_name
     if payload.phone is not None:
-        user.phone = payload.phone
+        verification_service.apply_phone_change(user, payload.phone)
     if payload.role is not None:
         user.role = payload.role
 

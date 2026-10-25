@@ -14,7 +14,7 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from app.core.config import settings
 
-TokenType = Literal["access", "refresh"]
+TokenType = Literal["access", "refresh", "mfa"]
 
 
 # --------------------------------------------------------------------------- #
@@ -73,6 +73,18 @@ def create_refresh_token(subject: str) -> str:
         subject,
         "refresh",
         timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+    )
+
+
+def create_mfa_token(subject: str, extra_claims: dict[str, Any] | None = None) -> str:
+    """Short-lived token proving the password step passed; it cannot call the API
+    (``get_current_user`` only accepts ``access``) and is exchanged for real
+    tokens once the second factor is verified."""
+    return _create_token(
+        subject,
+        "mfa",
+        timedelta(minutes=settings.MFA_CHALLENGE_TTL_MINUTES),
+        extra_claims,
     )
 
 

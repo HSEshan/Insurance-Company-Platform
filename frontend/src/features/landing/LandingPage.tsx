@@ -14,7 +14,7 @@ import { api, apiDocsHref, getErrorMessage } from "../../lib/api";
 import { useAuthStore } from "../../stores/authStore";
 import { Alert, Button, Card } from "../../components/ui";
 import { ChatWidget } from "../chat/ChatWidget";
-import type { AuthResult, Envelope, PublicConfig } from "../../types";
+import type { Envelope, LoginResult, PublicConfig } from "../../types";
 
 const CAPABILITIES = [
   {
@@ -72,12 +72,17 @@ export function LandingPage() {
     try {
       // Clear any stale session so the demo persona replaces it cleanly.
       clearAuth();
-      const res = await api.post<Envelope<AuthResult>>("/auth/login", {
+      const res = await api.post<Envelope<LoginResult>>("/auth/login", {
         email,
         password,
       });
       const result = res.data.data;
       if (!result) throw new Error("Login returned no data.");
+      // Shared demo accounts can't enable 2FA, but fall back to the full form if one does.
+      if (result.mfa_required || !result.user || !result.tokens) {
+        navigate("/login");
+        return;
+      }
       setAuth(
         result.user,
         result.tokens.access_token,

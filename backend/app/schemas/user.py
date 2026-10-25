@@ -24,6 +24,9 @@ class UserRead(UserBase):
     role: UserRole
     is_active: bool
     must_reset_password: bool = False
+    email_verified: bool = False
+    phone_verified: bool = False
+    mfa_enabled: bool = False
     last_login: datetime | None = None
     created_at: datetime
 

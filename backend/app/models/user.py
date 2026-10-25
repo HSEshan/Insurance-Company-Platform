@@ -7,10 +7,11 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDMixin
-from app.models.enums import UserRole
+from app.models.enums import MfaMethod, UserRole
 
 if TYPE_CHECKING:
     from app.models.customer import Customer
@@ -37,6 +38,21 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # --- Contact verification (cleared whenever the address/number changes) ---
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # --- Two-factor authentication ---
+    # NULL = 2FA off. Email/SMS require the matching channel to be verified.
+    mfa_method: Mapped[MfaMethod | None] = mapped_column(
+        SQLEnum(MfaMethod, name="mfa_method")
+    )
+    mfa_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Fernet-encrypted base32 TOTP secret (set only once enrollment is confirmed).
+    totp_secret_encrypted: Mapped[str | None] = mapped_column(String)
+    # SHA-256 hashes of unused single-use recovery codes.
+    mfa_recovery_codes: Mapped[list[str] | None] = mapped_column(JSONB)
+
     customer: Mapped[Customer | None] = relationship(
         back_populates="user",
         uselist=False,
@@ -46,3 +62,15 @@ class User(Base, UUIDMixin, TimestampMixin):
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None
+
+    @property
+    def phone_verified(self) -> bool:
+        return self.phone_verified_at is not None
+
+    @property
+    def mfa_enabled(self) -> bool:
+        return self.mfa_method is not None

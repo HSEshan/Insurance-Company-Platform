@@ -48,7 +48,12 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio:latest
+    # minio/minio was pulled from Docker Hub and quay.io now needs a login, so use
+    # Chainguard's free, source-built image (same entrypoint, includes mc).
+    image: cgr.dev/chainguard/minio:latest
+    # Run as root like the old image so existing root-owned minio_data volumes stay
+    # writable (the Chainguard default user, 65532, gets "file access denied").
+    user: "0:0"
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"

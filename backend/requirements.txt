@@ -25,6 +25,8 @@ redis==8.0.0
 
 # Background jobs (broker/backend both Redis; keep redis==8 pinned above)
 celery==5.6.3
+# Pinned: kombu 5.7.0 imports `packaging` without declaring it, crashing the worker.
+kombu==5.6.2
 
 # Email (MailHog in docker-compose; no TLS needed locally)
 aiosmtplib==5.1.2
